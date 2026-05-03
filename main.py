@@ -43,11 +43,22 @@ def job():
     except Exception as e:
         print(f"Error during job execution: {e}")
 
+import argparse
+
 def main():
+    parser = argparse.ArgumentParser(description="Daily News Aggregator")
+    parser.add_argument('--run-once', action='store_true', help="Run the job exactly once and exit (for crontab)")
+    args = parser.parse_args()
+
+    if args.run_once:
+        print("Running in 'run-once' mode (Crontab mode).")
+        job()
+        return
+
     with open('config.yaml', 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     
-    schedule_time = config['settings']['schedule_time']
+    schedule_time = config.get('settings', {}).get('schedule_time', '08:00')
     hour, minute = schedule_time.split(':')
     
     scheduler = BlockingScheduler()
