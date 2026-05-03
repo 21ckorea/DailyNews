@@ -11,7 +11,13 @@ class Mailer:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = self.config['sender_email']
-        msg['To'] = self.config['receiver_email']
+        receiver = self.config['receiver_email']
+        if isinstance(receiver, list):
+            receiver_str = ", ".join(receiver)
+        else:
+            receiver_str = str(receiver)
+            
+        msg['To'] = receiver_str
 
         part = MIMEText(html_content, 'html')
         msg.attach(part)

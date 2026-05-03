@@ -40,7 +40,7 @@
      smtp_port: 587
      sender_email: "발신자이메일@gmail.com"
      sender_password: "구글 앱 비밀번호 16자리" # (일반 비밀번호 아님)
-     receiver_email: "수신자이메일@domain.com"
+     receiver_email: "수신자이메일@domain.com" # 여러 명일 경우 ["email1", "email2"] 형식 지원
    ```
    > 💡 **앱 비밀번호 발급 방법 (Google)**
    > 1. 구글 계정 관리 > 보안 탭으로 이동

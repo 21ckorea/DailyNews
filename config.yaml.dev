@@ -17,7 +17,9 @@ email:
   sender_email: "your_email@domain.com"
   # 구글 2단계 인증 '앱 비밀번호' 16자리를 띄어쓰기 없이 입력합니다.
   sender_password: "your_app_password"
-  # 뉴스를 수신할 이메일 주소를 입력합니다. (발신자와 동일해도 무방함)
+  # 뉴스를 수신할 이메일 주소를 입력합니다.
+  # 여러 명에게 보낼 경우 리스트 형식을 사용하거나 콤마(,)로 구분합니다.
+  # 예: ["user1@domain.com", "user2@domain.com"] 또는 "user1@domain.com, user2@domain.com"
   receiver_email: "your_receiver_email@domain.com"
 
 settings:
