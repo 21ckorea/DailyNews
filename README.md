@@ -70,6 +70,18 @@ python3 main.py --run-once
   0 8 * * * cd /Users/ryan/work/python/DailyNews && /usr/bin/python3 main.py --run-once
   ```
 
+## 🔄 최신 버전으로 업데이트
+
+서버나 로컬 환경에서 소스 코드를 최신 버전으로 유지하려면 다음 명령어를 실행하세요.
+
+```bash
+git pull origin main
+```
+* 업데이트 후 새로운 라이브러리가 추가되었을 수 있으므로 다시 한번 패키지를 설치해 주는 것이 좋습니다.
+  ```bash
+  pip install -r requirements.txt
+  ```
+
 ## 📂 파일 구조
 - `main.py`: 프로그램 진입점 및 스케줄러 실행
 - `crawler.py`: 포털 검색 크롤링 및 중복/24시간 필터링 로직 핵심부
