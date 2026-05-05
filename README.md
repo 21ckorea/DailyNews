@@ -5,10 +5,10 @@
 ## ✨ 주요 기능
 - 🔍 **다중 검색 엔진 지원**: 구글, 네이버, 다음 검색 엔진의 결과 혼합 수집
 - ⏱️ **최신성 보장**: 이메일 발송 시점 기준 **최근 24시간 이내**에 보도된 기사만 필터링
-- 🤖 **스마트 중복 제거**: 서로 다른 언론사/포털에서 발생한 동일한 기사(제목 부분 일치 등)를 알고리즘으로 판별하여 중복 제거
-- 🏢 **실제 언론사 추출**: 단순 "네이버 뉴스"가 아닌 기사의 메타데이터(`og:site_name`)를 추적하여 실제 언론사명 기재
+- 🤖 **스마트 중복 제거 및 필터링**: 제목 기반 중복 제거는 물론, 사이드바 광고나 무관한 태그성 기사를 걸러내는 **2차 검증 로직** 탑재
+- 👥 **멀티 그룹 발송**: 수신자별로 서로 다른 카테고리 조합을 구성하여 개인화된 뉴스레터 발송 가능 (동일 카테고리는 1회만 크롤링하여 최적화)
+- 🏢 **실제 언론사 추출**: 기사의 메타데이터를 추적하여 실제 언론사명과 썸네일 이미지를 정확하게 추출
 - 🎨 **엔터프라이즈 리포트 디자인**: 모바일과 PC 모두에서 가독성이 뛰어난 세련된 대시보드 UI 스타일의 이메일 발송
-- ⏰ **스케줄링**: 스크립트를 켜두면 매일 지정된 시간(예: 오전 8시)에 자동으로 발송
 
 ## 🛠️ 설치 방법
 
@@ -32,24 +32,25 @@
    cp config.yaml.dev config.yaml
    ```
 
-2. **메일 발송 계정 설정 (`config.yaml`)**
-   생성된 `config.yaml` 파일을 열고, 사용할 이메일 계정(Gmail 권장)과 앱 비밀번호를 설정합니다.
+2. **이메일 및 수신 그룹 설정 (`config.yaml`)**
    ```yaml
    email:
      smtp_server: "smtp.gmail.com"
      smtp_port: 587
-     sender_email: "발신자이메일@gmail.com"
-     sender_password: "구글 앱 비밀번호 16자리" # (일반 비밀번호 아님)
-     receiver_email: "수신자이메일@domain.com" # 여러 명일 경우 ["email1", "email2"] 형식 지원
-   ```
-   > 💡 **앱 비밀번호 발급 방법 (Google)**
-   > 1. 구글 계정 관리 > 보안 탭으로 이동
-   > 2. **2단계 인증** 활성화
-   > 3. 하단의 **앱 비밀번호** 생성 (앱 이름은 'DailyNews' 등으로 임의 설정)
-   > 4. 화면에 나타난 16자리 비밀번호를 띄어쓰기 없이 복사하여 `sender_password`에 붙여넣기
+     sender_email: "발신자@gmail.com"
+     sender_password: "앱비밀번호"
 
-3. **키워드 및 카테고리 설정 (선택 사항)**
-   `config.yaml` 상단의 `categories` 항목을 수정하여 원하는 주제와 검색 키워드를 자유롭게 커스터마이징할 수 있습니다.
+   mailing_groups:
+     - name: "운영팀"
+       recipients: ["user1@domain.com"]
+       categories: ["보험개발원", "DT신기술"]
+     - name: "기획팀"
+       recipients: ["user2@domain.com", "user3@domain.com"]
+       categories: ["IT업계동향", "DT신기술"]
+   ```
+
+3. **키워드 및 카테고리 설정**
+   `categories` 항목에 각 그룹에서 사용할 카테고리 이름과 키워드를 정의합니다.
 
 ## 🚀 실행 방법
 
@@ -83,11 +84,12 @@ git pull origin main
   ```
 
 ## 📂 파일 구조
-- `main.py`: 프로그램 진입점 및 스케줄러 실행
-- `crawler.py`: 포털 검색 크롤링 및 중복/24시간 필터링 로직 핵심부
-- `mailer.py`: SMTP 통신 및 이메일 발송 담당
-- `templates/news_template.html`: 이메일 본문을 위한 커스텀 HTML/CSS 템플릿
-- `config.yaml`: (사용자 생성) 인증 정보 및 검색 키워드 설정 파일
+- `main.py`: 프로그램 진입점, 멀티 그룹 배분 및 스케줄러 실행
+- `crawler.py`: 뉴스 수집, 랭킹 계산, 2차 검증(Relevance Filter) 및 중복 제거 핵심 로직
+- `mailer.py`: SMTP 통신 및 멀티 수신자 발송 담당
+- `keyword_extractor.py`: 검색량 기반 실시간 키워드 분석 및 추출
+- `templates/news_template.html`: Jinja2 기반의 동적 HTML 뉴스레터 템플릿
+- `config.yaml`: 사용자 맞춤 설정 (카테고리, 그룹, 수신자 등)
 - `config.yaml.dev`: 초기 설정을 위한 템플릿 파일
 
 ---

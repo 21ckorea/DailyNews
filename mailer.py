@@ -7,15 +7,18 @@ class Mailer:
     def __init__(self, config):
         self.config = config['email']
 
-    def send_email(self, subject, html_content):
+    def send_email(self, subject, html_content, recipients=None):
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = self.config['sender_email']
-        receiver = self.config['receiver_email']
-        if isinstance(receiver, list):
-            receiver_str = ", ".join(receiver)
+        
+        # Use provided recipients or fallback to config
+        target_recipients = recipients or self.config.get('receiver_email', [])
+        
+        if isinstance(target_recipients, list):
+            receiver_str = ", ".join(target_recipients)
         else:
-            receiver_str = str(receiver)
+            receiver_str = str(target_recipients)
             
         msg['To'] = receiver_str
 
@@ -27,7 +30,7 @@ class Mailer:
                 server.starttls()
                 server.login(self.config['sender_email'], self.config['sender_password'])
                 server.send_message(msg)
-            print(f"Email sent successfully to {self.config['receiver_email']}")
+            print(f"Email sent successfully to {receiver_str}")
             return True
         except Exception as e:
             print(f"Failed to send email: {e}")

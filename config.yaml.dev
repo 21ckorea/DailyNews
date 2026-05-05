@@ -1,30 +1,28 @@
 categories:
-  - name: "DB계열사"
-    base_query: "DB그룹"
-    candidate_keywords: ["DB손해보험", "DB생명", "DB증권", "DB저축은행", "DB하이텍", "DB Inc", "DB그룹", "DB기술", "DB자산운용", "보험", "보험사"]
-  - name: "DT신기술"
-    base_query: "신기술"
-    candidate_keywords: ["AI", "데이터", "네이버", "빅데이터", "디지털 전환", "블록체인", "ESG", "스마트 팩토리", "인공지능", "생성형AI", "클라우드", "디지털 트윈"]
-  - name: "IT업계동향"
-    base_query: "IT업계"
-    candidate_keywords: ["삼성", "한화", "LG CNS", "삼성SDS", "신한DS", "한진정보통신", "메가존", "베스핀글로벌", "SK AX", "롯데정보통신", "신세계I&C", "CJ올리브네트워크"]
+  - name: "CategoryA"
+    base_query: "MainTopicA"
+    candidate_keywords: ["Keyword1", "Keyword2", "Keyword3"]
+  - name: "CategoryB"
+    base_query: "MainTopicB"
+    candidate_keywords: ["KeywordX", "KeywordY"]
 
 email:
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
-  # 아래 세 가지 항목을 자신의 이메일 환경에 맞게 반드시 변경하세요.
-  # 본인의 이메일 계정을 입력합니다. (예: ryan@gmail.com)
-  sender_email: "your_email@domain.com"
-  # 구글 2단계 인증 '앱 비밀번호' 16자리를 띄어쓰기 없이 입력합니다.
+  sender_email: "your_email@gmail.com"
   sender_password: "your_app_password"
-  # 뉴스를 수신할 이메일 주소를 입력합니다.
-  # 여러 명에게 보낼 경우 리스트 형식을 사용하거나 콤마(,)로 구분합니다.
-  # 예: ["user1@domain.com", "user2@domain.com"] 또는 "user1@domain.com, user2@domain.com"
-  receiver_email: "your_receiver_email@domain.com"
+
+mailing_groups:
+  - name: "Group1"
+    recipients: ["user1@example.com", "user2@example.com"]
+    categories: ["CategoryA", "CategoryB"]
+  - name: "Group2"
+    recipients: ["admin@example.com"]
+    categories: ["CategoryB"]
 
 settings:
   schedule_time: "08:00"
   max_news_per_category: 5
-  sources: ["naver", "google"]
+  sources: ["naver", "google", "daum"]
   deduplicate: true
-  dynamic_keywords: true # Enable frequency analysis
+  dynamic_keywords: true

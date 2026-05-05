@@ -77,13 +77,30 @@ class NewsCrawler:
             response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # 1. Try Fender UI selectors (Hashed classes found via browser)
+            # 1. Collect links but exclude sidebars/rankings/ads
             seen_links = set()
             for a in soup.find_all('a', href=True):
                 if len(news_list) >= limit: break
                 
+                # Check if this link is inside a sidebar or irrelevant widget
+                parent = a.parent
+                is_irrelevant = False
+                for _ in range(6): # Check up to 6 levels up for safety
+                    if not parent or parent.name == '[document]': break
+                    p_class = str(parent.get('class', '')).lower()
+                    p_id = str(parent.get('id', '')).lower()
+                    if any(x in p_class or x in p_id for x in ['aside', 'sidebar', 'rank', 'trend', 'recommend', 'banner', 'footer', 'header']):
+                        is_irrelevant = True
+                        break
+                    if parent.name in ['aside', 'footer', 'header', 'nav']:
+                        is_irrelevant = True
+                        break
+                    parent = parent.parent
+                
+                if is_irrelevant: continue
+                
                 href = a['href']
-                if not href.startswith('http') or any(d in href for d in ['search.naver.com', 'help.naver.com', 'nid.naver.com', 'news.naver.com/main', 'keep.naver.com', 'mkt.naver.com']):
+                if not href.startswith('http') or any(d in href for d in ['search.naver.com', 'help.naver.com', 'nid.naver.com', 'news.naver.com/main', 'keep.naver.com', 'mkt.naver.com', 'kin.naver.com', 'blog.naver.com', 'cafe.naver.com', 'dict.naver.com', 'whale.naver.com', 'veta.naver.com', 'adcr.naver.com', 'ad.naver.com']):
                     continue
                     
                 title = a.get('title') or a.get_text(strip=True)
@@ -200,15 +217,26 @@ class NewsCrawler:
                 return src and not any(p in src.lower() for p in ad_patterns)
 
             thumbnail = None
-            # PRIORITY 1: twitter:image -> og:image -> nate:image (in order)
-            for prop in ['twitter:image', 'og:image', 'nate:image']:
+            # PRIORITY 1: Meta tags (twitter:image -> og:image -> nate:image -> thumbnail)
+            for prop in ['twitter:image', 'og:image', 'nate:image', 'thumbnail']:
                 tag = soup.find('meta', property=prop) or soup.find('meta', attrs={'name': prop})
                 if tag:
                     img_url = tag.get('content', '')
-                    if img_url.startswith('//'): img_url = 'https:' + img_url
-                    if is_valid_img(img_url):
-                        thumbnail = img_url
-                        break
+                    if img_url:
+                        if img_url.startswith('//'): img_url = 'https:' + img_url
+                        if is_valid_img(img_url):
+                            thumbnail = img_url
+                            break
+
+            # PRIORITY 1.5: Link preload tags (Some sites use this for main article images)
+            if not thumbnail:
+                preload_tag = soup.find('link', rel='preload', attrs={'as': 'image'})
+                if preload_tag:
+                    img_url = preload_tag.get('href', '')
+                    if img_url:
+                        img_url = urljoin(final_url, img_url)
+                        if is_valid_img(img_url):
+                            thumbnail = img_url
 
             # PRIORITY 2: First image in article body
             if not thumbnail:
@@ -313,7 +341,8 @@ class NewsCrawler:
                 
                 title = title_elem.get_text(strip=True)
                 link = title_elem.get('href', '')
-                if not link or not link.startswith('http'): continue
+                if not link or not link.startswith('http') or any(d in link for d in ['search.daum.net', 'kin.naver.com', 'blog.naver.com', 'cafe.naver.com', 'blog.daum.net', 'cafe.daum.net', 'dict.naver.com', 'dic.daum.net', 'namu.wiki']):
+                    continue
                 
                 press_elem = item.select_one('.item-writer, .txt_info, .info_press')
                 press = press_elem.get_text(strip=True) if press_elem else "Daum 뉴스"
@@ -343,45 +372,97 @@ class NewsCrawler:
             print(f"Error fetching Daum news for {keyword}: {e}")
         return news_list
 
+    def rank_keywords_realtime(self, keywords):
+        import concurrent.futures
+        import feedparser
+        from urllib.parse import quote
+        
+        def get_score(kw):
+            encoded_keyword = quote(f'{kw} when:1d')
+            url = f'https://news.google.com/rss/search?q={encoded_keyword}&hl=ko&gl=KR&ceid=KR%3Ako'
+            try:
+                resp = requests.get(url, headers=self.headers, timeout=5)
+                feed = feedparser.parse(resp.text)
+                return kw, len(feed.entries)
+            except:
+                return kw, 0
+                
+        scores = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            results = executor.map(get_score, keywords)
+            for kw, score in results:
+                scores[kw] = score
+                
+        # 점수 순 내림차순 정렬 (동점일 경우 원래 순서 유지)
+        ranked = sorted(keywords, key=lambda k: scores[k], reverse=True)
+        return ranked, scores
+
     def get_all_news(self):
         all_results = {}
         top_keywords_map = {}
+        ranked_keywords_map = {}
+        scores_map = {}
         
         for category in self.config['categories']:
             cat_name = category['name']
             print(f"\nProcessing category: {cat_name}")
             
-            if self.config['settings'].get('dynamic_keywords'):
-                base_query = category.get('base_query', cat_name)
-                candidates = category.get('candidate_keywords', [])
-                # Use Daum for frequency analysis too as it's more reliable
-                pool = self.fetch_daum_news(base_query, limit=10)
-                counts = {kw: 0 for kw in candidates}
-                for news in pool:
-                    text = news['title'].lower()
-                    for kw in candidates:
-                        if kw.lower() in text: counts[kw] += 1
-                sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
-                top_3 = [kw for kw, count in sorted_counts[:3]]
-                if sum(counts.values()) == 0: top_3 = candidates[:3]
-                keywords_to_search = top_3
+            candidates = category.get('candidate_keywords', [])
+            
+            if self.config['settings'].get('dynamic_keywords') and candidates:
+                print(f"  - Ranking {len(candidates)} keywords in real-time...")
+                ranked_candidates, scores = self.rank_keywords_realtime(candidates)
+                scores_map[cat_name] = scores
+                for i, kw in enumerate(ranked_candidates):
+                    print(f"    {i+1}. {kw} (News Volume: {scores[kw]})")
+                keywords_to_search = ranked_candidates
             else:
-                keywords_to_search = category.get('keywords', [])
+                keywords_to_search = candidates if candidates else [category.get('base_query', cat_name)]
+                scores_map[cat_name] = {kw: 0 for kw in keywords_to_search}
 
             top_keywords_map[cat_name] = keywords_to_search
             cat_news = []
             seen_links = set()
+            seen_titles = set()
+            
+            # 목표 기사 수 (기본 10개)
+            total_target = self.config['settings']['max_news_per_category'] * 2
+            num_kws = len(keywords_to_search)
+            
+            # 키워드별 비중 할당 (1순위 > 2순위 > 3순위)
+            if num_kws >= 3:
+                # 예: 10개 기준 -> 5개, 3개, 2개
+                q1 = int(total_target * 0.5)
+                q2 = int(total_target * 0.3)
+                quotas = [q1, q2, total_target - q1 - q2]
+            elif num_kws == 2:
+                # 예: 10개 기준 -> 6개, 4개
+                q1 = int(total_target * 0.6)
+                quotas = [q1, total_target - q1]
+            else:
+                quotas = [total_target]
+                
+            carry_over = 0 # 앞 키워드에서 다 못 채운 할당량은 다음 키워드로 이월
 
-            for kw in keywords_to_search:
-                raw_news = []
-                # Mix sources: Get some from Daum, some from Naver/Google
-                if self.config['settings'].get('dynamic_keywords') and kw == category.get('base_query', cat_name):
-                    # Reuse pool if we already fetched it
-                    daum_news = pool[:self.config['settings']['max_news_per_category']]
+            for idx, kw in enumerate(keywords_to_search):
+                # 목표 총 개수를 채우면 중단
+                if len(cat_news) >= total_target: break
+                
+                if idx < len(quotas):
+                    target_for_kw = quotas[idx] + carry_over
                 else:
-                    daum_news = self.fetch_daum_news(kw, limit=self.config['settings']['max_news_per_category'])
-                naver_news = self.fetch_naver_news(kw, limit=self.config['settings']['max_news_per_category'])
-                google_news = self.fetch_google_news(kw, limit=self.config['settings']['max_news_per_category'])
+                    # 4번째 키워드부터는 남은 할당량을 채우기 위해 검색
+                    target_for_kw = total_target - len(cat_news)
+                    
+                if target_for_kw <= 0: continue
+                
+                # 중복 제거 후 목표 개수를 맞추기 위해 넉넉하게 수집
+                fetch_limit = max(target_for_kw * 2, 5)
+                
+                # Mix sources: Get some from Daum, some from Naver/Google
+                daum_news = self.fetch_daum_news(kw, limit=fetch_limit)
+                naver_news = self.fetch_naver_news(kw, limit=fetch_limit)
+                google_news = self.fetch_google_news(kw, limit=fetch_limit)
                 
                 # Combine and interleave for variety
                 combined = []
@@ -391,12 +472,25 @@ class NewsCrawler:
                     if i < len(naver_news): combined.append(naver_news[i])
                     if i < len(google_news): combined.append(google_news[i])
                 
-                raw_news = combined
-
+                print(f"  - Total mixed news found for '{kw}': {len(combined)} (Target: {target_for_kw})")
+                
                 import re
-                seen_titles = set()
-                print(f"  - Total mixed news found for '{kw}': {len(raw_news)}")
-                for news in raw_news:
+                added_for_kw = 0
+                for news in combined:
+                    if added_for_kw >= target_for_kw:
+                        break # 할당량 채우면 중단
+                        
+                    # 제목 기반 관련성 체크: 키워드의 핵심 단어가 제목에 포함되어 있는지 확인
+                    # (검색 엔진의 '추천 기사'나 '태그' 기반 낚시성 결과 방지)
+                    kw_clean = re.sub(r'[^가-힣a-zA-Z0-9 ]', '', kw)
+                    kw_parts = [p for p in kw_clean.split() if len(p) >= 2]
+                    if not kw_parts: kw_parts = [kw] # 너무 짧은 키워드는 통째로 체크
+                    
+                    title_clean = news['title'].lower()
+                    if not any(p.lower() in title_clean for p in kw_parts):
+                        # print(f"    - Skipping irrelevant: {news['title']}")
+                        continue
+                        
                     if self.config['settings']['deduplicate']:
                         clean_title = re.sub(r'[^가-힣a-zA-Z0-9]', '', news['title'])
                         
@@ -409,22 +503,40 @@ class NewsCrawler:
                                     
                         if not is_duplicate:
                             news['keyword'] = kw
-                            # Ensure date is clean
                             news['date'] = self._normalize_date(news.get('date'))
                             cat_news.append(news)
                             seen_links.add(news['link'])
                             seen_titles.add(clean_title)
+                            added_for_kw += 1
                     else:
                         news['keyword'] = kw
                         news['date'] = self._normalize_date(news.get('date'))
                         cat_news.append(news)
+                        added_for_kw += 1
+                
+                # 못 채운 할당량은 다음 키워드로 이월
+                carry_over = target_for_kw - added_for_kw
             
-            all_results[cat_name] = cat_news[:self.config['settings']['max_news_per_category'] * 2]
-            print(f"  - Final list for '{cat_name}': {len(all_results[cat_name])} items")
+            all_results[cat_name] = cat_news
             
-        return all_results, top_keywords_map
+            # 실제 수집된 기사 개수를 바탕으로 Top 키워드 재정렬 (배지용)
+            from collections import Counter
+            actual_kw_counts = Counter([n['keyword'] for n in cat_news])
+            if actual_kw_counts:
+                # 기사 수가 많은 순으로 정렬
+                sorted_actual_kws = sorted(
+                    actual_kw_counts.keys(), 
+                    key=lambda k: (actual_kw_counts[k], -keywords_to_search.index(k)), 
+                    reverse=True
+                )
+                top_keywords_map[cat_name] = sorted_actual_kws
             
-        return all_results, top_keywords_map
+            # 검색된 모든 키워드 보존 (하단 랭킹용)
+            ranked_keywords_map[cat_name] = keywords_to_search
+            
+            print(f"  - Final list for '{cat_name}': {len(cat_news)} items")
+            
+        return all_results, top_keywords_map, ranked_keywords_map, scores_map
 
 if __name__ == "__main__":
     crawler = NewsCrawler()

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,11 +12,13 @@
             padding: 0;
             color: #333;
         }
+
         .container {
             max-width: 1000px;
             margin: 0 auto;
             background-color: #ffffff;
         }
+
         .header {
             background-color: #008a4c;
             color: white;
@@ -25,6 +28,7 @@
             font-weight: bold;
             letter-spacing: 1px;
         }
+
         .subheader {
             background-color: #f8f9fa;
             padding: 10px 20px;
@@ -33,17 +37,20 @@
             color: #888;
             border-bottom: 1px solid #eee;
         }
+
         .content {
             padding: 20px;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
         }
+
         .section {
             flex: 1;
             min-width: 300px;
             margin: 10px;
         }
+
         .section-title-wrapper {
             background-color: #f0f0f0;
             border-radius: 5px;
@@ -53,16 +60,19 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .section-title {
             font-size: 18px;
             font-weight: bold;
             color: #444;
         }
+
         .keyword-top {
             font-size: 13px;
             color: #666;
             margin-bottom: 10px;
         }
+
         .keyword-badge {
             background-color: #e8f5e9;
             color: #2e7d32;
@@ -71,12 +81,14 @@
             font-size: 11px;
             margin-right: 5px;
         }
+
         .news-card {
             display: flex;
             margin-bottom: 20px;
             text-decoration: none;
             color: inherit;
         }
+
         .news-thumbnail {
             width: 100px;
             height: 70px;
@@ -84,9 +96,11 @@
             object-fit: cover;
             margin-right: 12px;
         }
+
         .news-info {
             flex: 1;
         }
+
         .news-title {
             font-size: 14px;
             font-weight: 600;
@@ -97,16 +111,19 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
         .news-meta {
             font-size: 11px;
             color: #999;
             display: flex;
             gap: 8px;
         }
+
         .news-tag {
             color: #008a4c;
             font-weight: bold;
         }
+
         @media screen and (max-width: 600px) {
             .section {
                 flex: 100%;
@@ -114,10 +131,11 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
-            DB Daily News
+            {{ group_name }} Daily News
         </div>
         <div class="subheader">
             발송 일시: {{ today }}
@@ -129,18 +147,16 @@
                     <span class="section-title">{{ cat_name }}</span>
                 </div>
                 <div class="keyword-top">
-                    키워드 Top 3: 
-                    {% for kw in keywords_map[cat_name] %}
+                    키워드 Top 3:
+                    {% for kw in keywords_map[cat_name][:3] %}
                     <span class="keyword-badge">{{ kw }}</span>
                     {% endfor %}
                 </div>
                 <div class="news-list">
                     {% for news in news_list %}
                     <a href="{{ news.link }}" class="news-card" target="_blank">
-                        <img src="{{ news.thumbnail }}" 
-                             class="news-thumbnail" 
-                             alt="thumbnail"
-                             onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=150&h=150&fit=crop&q=80'">
+                        <img src="{{ news.thumbnail }}" class="news-thumbnail" alt="thumbnail"
+                            onerror="this.src='https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=150&h=150&fit=crop&q=80'">
                         <div class="news-info">
                             <div class="news-title">{{ news.title }}</div>
                             <div class="news-meta">
@@ -157,10 +173,31 @@
             </div>
             {% endfor %}
         </div>
-        <div class="footer" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center; line-height: 1.5;">
+
+        <div class="keyword-ranking-full" style="padding: 20px; background-color: #f8f9fa; border-top: 1px solid #eee; border-bottom: 1px solid #eee; margin-top: 10px;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 12px; color: #444;">실시간 검색 순위 (키워드 전체)</div>
+            {% for cat_name in results.keys() %}
+            <div style="font-size: 13px; line-height: 1.8; margin-bottom: 8px; display: flex;">
+                <div style="color: #666; font-weight: bold; width: 110px; flex-shrink: 0;">{{ cat_name }} :</div>
+                <div style="flex: 1;">
+                    {% for kw in all_keywords_map[cat_name] %}
+                    <span style="color: #2e7d32; font-weight: 500; display: inline-block;">{{ kw }}({{ scores_map[cat_name][kw] }})</span>
+                    {% if not loop.last %}<span style="color: #aaa; font-size: 11px; margin: 0 4px; display: inline-block;">&gt;</span>{% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="footer"
+            style="margin-top: 30px; padding: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center; line-height: 1.6;">
+            <div style="margin-bottom: 15px; color: #444; font-weight: 500;">
+                추가/삭제가 필요한 키워드는 <a href="mailto:ryan@dbinc.co.kr" style="color: #008a4c; text-decoration: none; border-bottom: 1px solid #008a4c;">ryan@dbinc.co.kr</a>로 키워드만 보내 주시면 추가해 주겠습니다.
+            </div>
             본 뉴스레터는 자동화된 시스템을 통해 발송되며, <strong>발송 시점 기준 지난 24시간 동안 보도된 주요 기사</strong>를 선별하여 제공합니다.<br>
             <span style="color: #999; margin-top: 5px; display: inline-block;">DB Inc. 서인교 드림</span>
         </div>
     </div>
 </body>
+
 </html>
