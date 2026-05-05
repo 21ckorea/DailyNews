@@ -105,6 +105,9 @@ python3 main.py --extract-only --query "보험개발원"
 
 # 3. 기존 설정(config.yaml) 중 특정 카테고리만 골라서 발송
 python3 main.py --run-once --static "DT신기술,IT업계동향"
+
+# 4. 혼합 사용 (새로운 주제 추출 + 기존 카테고리 선택)
+python3 main.py --run-once --query "보험개발원" --static "DT신기술,IT업계동향"
 ```
 
 ## 📂 파일 구조
