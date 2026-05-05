@@ -87,6 +87,25 @@ git pull origin main
   pip install -r requirements.txt
   ```
 
+### 💡 고급 실행 옵션 (동적 키워드 및 카테고리 선택)
+
+`config.yaml`에 설정된 내용 외에 특정 주제로 즉시 뉴스레터를 생성하거나, 기존 카테고리 중 일부만 골라서 실행하고 싶을 때 사용합니다.
+
+- **`--query`**: 입력한 검색어를 바탕으로 연관 키워드를 **실시간으로 분석(추출)**하여 뉴스를 수집합니다.
+- **`--static`**: `config.yaml`에 이미 정의된 카테고리 중 특정 카테고리만 지정해서 실행합니다.
+
+**실행 예시:**
+```bash
+# 1. 특정 검색어로 즉시 키워드 추출 및 뉴스레터 발송
+python3 main.py --run-once --query "반도체 업계동향"
+
+# 2. 기존 설정(config.yaml) 중 특정 카테고리만 골라서 발송
+python3 main.py --run-once --static "DT신기술,IT업계동향"
+
+# 3. 혼합 사용 (새로운 주제 추출 + 기존 카테고리 포함)
+python3 main.py --run-once --query "보험개발원" --static "DT신기술"
+```
+
 ## 📂 파일 구조
 - `main.py`: 프로그램 진입점, 멀티 그룹 배분 및 스케줄러 실행
 - `crawler.py`: 뉴스 수집, 랭킹 계산, 2차 검증(Relevance Filter) 및 중복 제거 핵심 로직
