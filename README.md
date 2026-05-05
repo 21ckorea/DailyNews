@@ -34,6 +34,10 @@
 
 2. **이메일 및 수신 그룹 설정 (`config.yaml`)**
    ```yaml
+   ai:
+     trend_top_n: 100        # 동적 키워드 추출 시 최대 키워드 개수
+     request_delay: 1.0     # 검색 엔진 요청 간 대기 시간(초)
+
    email:
      smtp_server: "smtp.gmail.com"
      smtp_port: 587

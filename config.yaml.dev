@@ -1,3 +1,7 @@
+ai:
+  trend_top_n: 100
+  request_delay: 1.0
+
 categories:
   - name: "CategoryA"
     base_query: "MainTopicA"
