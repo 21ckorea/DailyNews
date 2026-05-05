@@ -93,17 +93,18 @@ git pull origin main
 
 - **`--query`**: 입력한 검색어를 바탕으로 연관 키워드를 **실시간으로 분석(추출)**하여 뉴스를 수집합니다.
 - **`--static`**: `config.yaml`에 이미 정의된 카테고리 중 특정 카테고리만 지정해서 실행합니다.
+- **`--extract-only`**: 뉴스 수집이나 메일 발송 없이, **키워드 추출 결과만 터미널 화면에 출력**합니다. (새로운 키워드 후보를 미리 확인하고 싶을 때 유용합니다.)
 
 **실행 예시:**
 ```bash
 # 1. 특정 검색어로 즉시 키워드 추출 및 뉴스레터 발송
 python3 main.py --run-once --query "반도체 업계동향"
 
-# 2. 기존 설정(config.yaml) 중 특정 카테고리만 골라서 발송
-python3 main.py --run-once --static "DT신기술,IT업계동향"
+# 2. 뉴스 발송 없이 '키워드 추출 결과'만 화면에서 확인
+python3 main.py --extract-only --query "보험개발원"
 
-# 3. 혼합 사용 (새로운 주제 추출 + 기존 카테고리 포함)
-python3 main.py --run-once --query "보험개발원" --static "DT신기술"
+# 3. 기존 설정(config.yaml) 중 특정 카테고리만 골라서 발송
+python3 main.py --run-once --static "DT신기술,IT업계동향"
 ```
 
 ## 📂 파일 구조

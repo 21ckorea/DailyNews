@@ -143,6 +143,8 @@ def main():
                         help="동적 키워드 추출 검색어. 쉼표(,)로 여러 개 지정 가능.")
     parser.add_argument('--static', type=str, default=None,
                         help="config.yaml에서 그대로 사용할 카테고리 이름. 쉼표(,)로 지정.")
+    parser.add_argument('--extract-only', action='store_true',
+                        help="뉴스 수집/발송 없이 키워드 추출 결과만 화면에 출력합니다.")
     args = parser.parse_args()
 
     # 파싱: 쉼표 구분 → 리스트
@@ -153,6 +155,34 @@ def main():
     static_list = None
     if args.static:
         static_list = [q.strip() for q in args.static.split(',') if q.strip()]
+
+    # [NEW] 키워드 추출만 수행하는 모드
+    if args.extract_only:
+        if not query_list:
+            print("Error: --extract-only 모드에서는 --query '검색어'를 반드시 지정해야 합니다.")
+            return
+            
+        print(f"\n{'='*60}")
+        print(f"🔍 키워드 추출 모드 (발송 제외)")
+        print(f"{'='*60}")
+        
+        with open('config.yaml', 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        from keyword_extractor import KeywordExtractor
+        import json
+        
+        extractor = KeywordExtractor(config)
+        results = extractor.extract_multiple(query_list)
+        
+        for res in results:
+            print(f"\n[결과] {res['name']}")
+            print(f"  - 핵심 검색어(base_query): {res['base_query']}")
+            print(f"  - 추출된 키워드 ({len(res['candidate_keywords'])}개):")
+            print(f"    {', '.join(res['candidate_keywords'])}")
+        
+        print(f"\n{'='*60}")
+        return
 
     if args.run_once:
         print(f"Running in 'run-once' mode.")
