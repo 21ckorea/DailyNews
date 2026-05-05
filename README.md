@@ -97,16 +97,19 @@ git pull origin main
 
 **실행 예시:**
 ```bash
-# 1. 특정 검색어로 즉시 키워드 추출 및 뉴스레터 발송
+# 1. 설정파일(config.yaml)의 모든 내용을 바탕으로 1회 즉시 발송
+python3 main.py --run-once
+
+# 2. 특정 검색어로 즉시 키워드 추출 및 뉴스레터 발송
 python3 main.py --run-once --query "반도체 업계동향"
 
-# 2. 뉴스 발송 없이 '키워드 추출 결과'만 화면에서 확인
+# 3. 뉴스 발송 없이 '키워드 추출 결과'만 화면에서 확인
 python3 main.py --extract-only --query "보험개발원"
 
-# 3. 기존 설정(config.yaml) 중 특정 카테고리만 골라서 발송
+# 4. 기존 설정 중 특정 카테고리만 골라서 발송
 python3 main.py --run-once --static "DT신기술,IT업계동향"
 
-# 4. 혼합 사용 (새로운 주제 추출 + 기존 카테고리 선택)
+# 5. 혼합 사용 (새로운 주제 추출 + 기존 카테고리 선택)
 python3 main.py --run-once --query "보험개발원" --static "DT신기술,IT업계동향"
 ```
 
